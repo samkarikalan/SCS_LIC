@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SCS License">
+<meta name="theme-color" content="#f0f4f8" id="themeColorMeta">
+<title>SCS License</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+
+<!-- HOME -->
+<div class="screen active" id="screen-home">
+  <div class="home-header">
+    <div class="home-logo">🔑</div>
+    <div>
+      <div class="home-title">SCS License</div>
+      <div class="home-sub">Club Scheduler Pro</div>
+    </div>
+    <button class="theme-btn" id="themeBtn" onclick="toggleTheme()">🌙</button>
+  </div>
+  <div class="home-scroll">
+    <div class="home-grid">
+      <div class="home-tile tile-check" onclick="showScreen('check')">
+        <div class="tile-icon">🔍</div>
+        <div class="tile-label">Check Status</div>
+        <div class="tile-info">View my plan</div>
+        <div class="tile-sub">Enter your email</div>
+      </div>
+      <div class="home-tile tile-request" onclick="showScreen('request')">
+        <div class="tile-icon">⬆️</div>
+        <div class="tile-label">Request Upgrade</div>
+        <div class="tile-info">Get Pro access</div>
+        <div class="tile-sub">Submit request</div>
+      </div>
+    </div>
+
+    <div class="home-info-card">
+      <div class="hic-label">About Plans</div>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div class="plan-row">
+          <div class="plan-icon-box">⚡</div>
+          <div>
+            <div class="plan-name">Pro</div>
+            <span class="plan-badge badge-pro">Full Access</span>
+            <div style="font-size:var(--fs-xs);color:var(--muted);margin-top:4px;line-height:1.5;">Round organiser, vault manager, all features unlocked.</div>
+          </div>
+        </div>
+        <div style="height:1px;background:var(--border);"></div>
+        <div class="plan-row">
+          <div class="plan-icon-box" style="background:rgba(14,165,233,.08);">👁</div>
+          <div>
+            <div class="plan-name">Basic</div>
+            <span class="plan-badge badge-basic">Viewer Only</span>
+            <div style="font-size:var(--fs-xs);color:var(--muted);margin-top:4px;line-height:1.5;">View schedules and results. Cannot manage rounds or vaults.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CHECK STATUS -->
+<div class="screen" id="screen-check">
+  <div class="screen-header">
+    <button class="back-btn" onclick="showScreen('home');resetCheck();">← Home</button>
+    <h1>Check Status</h1>
+    <div style="width:60px"></div>
+  </div>
+  <div class="screen-scroll">
+    <div class="check-pad">
+      <div class="check-hero">
+        <div class="hero-icon">🔍</div>
+        <div class="hero-title">Check My Plan</div>
+        <div class="hero-sub">Enter your email to see your current license status</div>
+      </div>
+      <div class="section-card">
+        <div class="field" style="margin-bottom:0;">
+          <label>Your Email</label>
+          <input type="email" id="checkEmail" placeholder="player@email.com"
+            onkeydown="if(event.key==='Enter')checkStatus()"
+            oninput="resetCheck()">
+        </div>
+      </div>
+      <button class="btn-primary" id="checkBtn" onclick="checkStatus()" style="margin-bottom:16px;">🔍 Check Status</button>
+
+      <div class="status-result" id="statusResult">
+        <div class="status-result-header">
+          <div class="status-result-icon" id="statusResultIcon">⚡</div>
+          <div>
+            <div style="font-size:var(--fs-md);font-weight:800;color:var(--text);" id="statusPlanName">Pro</div>
+            <div id="statusPlanBadge"></div>
+          </div>
+        </div>
+        <div class="status-row"><span class="sr-label">Email</span><span class="sr-val" id="statusEmail">—</span></div>
+        <div class="status-row"><span class="sr-label">Status</span><span class="sr-val" id="statusActive">—</span></div>
+        <div class="status-row"><span class="sr-label">Expires</span><span class="sr-val" id="statusExpiry">—</span></div>
+      </div>
+
+      <div class="not-found-card" id="notFoundCard">
+        <div class="not-found-icon">❓</div>
+        <div class="not-found-title">No License Found</div>
+        <div class="not-found-sub">No license is linked to this email.<br>Request an upgrade to get started.</div>
+      </div>
+
+      <button class="btn-secondary" id="checkRequestBtn" onclick="showScreen('request')" style="display:none;">⬆️ Request Upgrade →</button>
+    </div>
+  </div>
+</div>
+
+<!-- REQUEST UPGRADE -->
+<div class="screen" id="screen-request">
+  <div class="screen-header">
+    <button class="back-btn" onclick="showScreen('home');resetRequest();">← Home</button>
+    <h1>Request Upgrade</h1>
+    <div style="width:60px"></div>
+  </div>
+  <div class="screen-scroll">
+    <div class="request-pad">
+      <div class="request-hero">
+        <div class="hero-icon">⬆️</div>
+        <div class="hero-title">Get Pro Access</div>
+        <div class="hero-sub">Submit your request and the admin will activate your plan shortly.</div>
+      </div>
+
+      <div class="request-success" id="requestSuccess">
+        <div class="success-icon">✅</div>
+        <div class="success-title">Request Sent!</div>
+        <div class="success-sub">Your upgrade request has been submitted.<br>The admin will review and activate your plan soon.</div>
+      </div>
+
+      <div id="requestForm">
+        <div class="section-card">
+          <div class="section-title">Your Details</div>
+          <div class="field">
+            <label>Email</label>
+            <input type="email" id="reqEmail" placeholder="player@email.com">
+          </div>
+          <div class="field" style="margin-bottom:0;">
+            <label>Name (optional)</label>
+            <input type="text" id="reqName" placeholder="Your name or club">
+          </div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-title">Select Plan</div>
+          <div class="plan-chips">
+            <div class="plan-chip selected" id="chip-pro" onclick="selectPlan('pro')">
+              <div class="plan-chip-icon">⚡</div>
+              <div class="plan-chip-name">Pro</div>
+              <div class="plan-chip-desc">Full access to all features</div>
+            </div>
+            <div class="plan-chip" id="chip-basic" onclick="selectPlan('basic')">
+              <div class="plan-chip-icon">👁</div>
+              <div class="plan-chip-name">Basic</div>
+              <div class="plan-chip-desc">Viewer-only access</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-title">Message (optional)</div>
+          <div class="field" style="margin-bottom:0;">
+            <label>Notes for admin</label>
+            <textarea id="reqMessage" rows="3" placeholder="e.g. I'm the organiser for ABC Badminton Club"></textarea>
+          </div>
+        </div>
+
+        <button class="btn-primary" id="submitBtn" onclick="submitRequest()">⬆️ Submit Request</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- #app -->
+<div class="toast" id="toast"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
