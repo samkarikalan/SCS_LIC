@@ -40,6 +40,12 @@
         <div class="tile-info">Get Pro access</div>
         <div class="tile-sub">Submit request</div>
       </div>
+      <div class="home-tile tile-admin" onclick="showScreen('admin')" style="grid-column:1/-1;">
+        <div class="tile-icon">🔐</div>
+        <div class="tile-label">Admin</div>
+        <div class="tile-info">Manage licenses &amp; requests</div>
+        <div class="tile-sub">Password required</div>
+      </div>
     </div>
 
     <div class="home-info-card">
@@ -180,6 +186,133 @@
         <div id="submitError" style="color:#e63757;font-size:0.82rem;text-align:center;min-height:18px;margin-bottom:8px;"></div>
         <button class="btn-primary" id="submitBtn" onclick="submitRequest()">⬆️ Submit Request</button>
       </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ── ADMIN LOGIN ── -->
+<div class="screen" id="screen-admin">
+  <div class="screen-header">
+    <button class="back-btn" onclick="showScreen('home');adminReset();">← Home</button>
+    <h1>Admin</h1>
+    <div style="width:60px"></div>
+  </div>
+  <div class="screen-scroll">
+    <div class="admin-pad" id="adminLoginSection">
+      <div class="admin-login-hero">
+        <div class="hero-icon">🔐</div>
+        <div class="hero-title">Admin Access</div>
+        <div class="hero-sub">Enter the club admin password to continue</div>
+      </div>
+      <div class="section-card">
+        <div class="field" style="margin-bottom:0;">
+          <label>Admin Password</label>
+          <input type="password" id="adminPwInput" placeholder="Enter password"
+            onkeydown="if(event.key==='Enter')adminLogin()">
+        </div>
+      </div>
+      <div id="adminLoginError" style="color:var(--red);font-size:0.82rem;text-align:center;min-height:18px;margin-bottom:8px;"></div>
+      <button class="btn-primary" onclick="adminLogin()">🔐 Login</button>
+    </div>
+
+    <div class="admin-pad" id="adminDashSection" style="display:none;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <div style="font-size:var(--fs-md);font-weight:800;color:var(--text);">🔐 Admin Panel</div>
+        <button class="admin-logout-btn" onclick="adminLogout()">Logout</button>
+      </div>
+
+      <!-- PENDING REQUESTS -->
+      <div class="section-card" style="padding:0;overflow:hidden;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border);">
+          <div class="section-title" style="margin:0;">📋 Pending Requests</div>
+          <button onclick="adminLoadRequests()" style="background:none;border:none;color:var(--accent);font-size:var(--fs-xs);font-weight:700;cursor:pointer;">↻ Refresh</button>
+        </div>
+        <div id="adminRequestsList" style="padding:12px 16px;">
+          <div class="no-requests">Loading...</div>
+        </div>
+      </div>
+
+      <!-- DIRECT ACTIVATE -->
+      <div class="section-card" style="margin-top:4px;">
+        <div class="section-title">⚡ Direct Activate</div>
+        <div class="field">
+          <label>Email</label>
+          <input type="email" id="directEmail" placeholder="user@email.com">
+        </div>
+        <div class="field" style="margin-bottom:10px;">
+          <label>Plan</label>
+          <div class="plan-chips-row">
+            <div class="plan-chip-sm selected" id="dchip-pro" onclick="selectDirectPlan('pro')">⚡ Pro</div>
+            <div class="plan-chip-sm" id="dchip-basic" onclick="selectDirectPlan('basic')">👁 Basic</div>
+          </div>
+        </div>
+        <div class="field" style="margin-bottom:10px;">
+          <label>Duration</label>
+          <div class="duration-grid" id="directDurationGrid">
+            <div class="duration-chip selected" id="ddur-1m" onclick="selectDirectDuration('1m')">
+              <div class="duration-chip-label">1 Month</div>
+              <div class="duration-chip-sub">30 days</div>
+            </div>
+            <div class="duration-chip" id="ddur-6m" onclick="selectDirectDuration('6m')">
+              <div class="duration-chip-label">6 Months</div>
+              <div class="duration-chip-sub">180 days</div>
+            </div>
+            <div class="duration-chip" id="ddur-1y" onclick="selectDirectDuration('1y')">
+              <div class="duration-chip-label">1 Year</div>
+              <div class="duration-chip-sub">365 days</div>
+            </div>
+            <div class="duration-chip" id="ddur-life" onclick="selectDirectDuration('life')">
+              <div class="duration-chip-label">Lifetime</div>
+              <div class="duration-chip-sub">No expiry</div>
+            </div>
+          </div>
+        </div>
+        <div id="directError" style="color:var(--red);font-size:0.82rem;min-height:16px;margin-bottom:8px;"></div>
+        <button class="btn-primary" id="directActivateBtn" onclick="directActivate()">⚡ Activate Plan</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── ACTIVATE MODAL ── -->
+<div id="activateModal" style="display:none;">
+  <div class="modal-overlay" onclick="closeActivateModal(event)">
+    <div class="modal-sheet" onclick="event.stopPropagation()">
+      <div class="modal-title">Activate Plan</div>
+      <div class="modal-sub" id="modalSubText">Choose duration for this user</div>
+
+      <div class="duration-grid">
+        <div class="duration-chip selected" id="mdur-1m" onclick="selectModalDuration('1m')">
+          <div class="duration-chip-label">1 Month</div>
+          <div class="duration-chip-sub">30 days</div>
+        </div>
+        <div class="duration-chip" id="mdur-6m" onclick="selectModalDuration('6m')">
+          <div class="duration-chip-label">6 Months</div>
+          <div class="duration-chip-sub">180 days</div>
+        </div>
+        <div class="duration-chip" id="mdur-1y" onclick="selectModalDuration('1y')">
+          <div class="duration-chip-label">1 Year</div>
+          <div class="duration-chip-sub">365 days</div>
+        </div>
+        <div class="duration-chip" id="mdur-life" onclick="selectModalDuration('life')">
+          <div class="duration-chip-label">Lifetime</div>
+          <div class="duration-chip-sub">No expiry</div>
+        </div>
+      </div>
+
+      <!-- Key result -->
+      <div class="key-result-card" id="modalKeyResult">
+        <div class="key-label">License Key Generated</div>
+        <div class="key-value" id="modalKeyValue">—</div>
+        <div class="key-expiry" id="modalKeyExpiry"></div>
+        <button class="btn-copy" onclick="copyKey()">📋 Copy Key</button>
+      </div>
+
+      <div id="modalError" style="color:var(--red);font-size:0.82rem;min-height:16px;margin-bottom:10px;"></div>
+
+      <button class="btn-primary" id="modalActivateBtn" onclick="modalActivate()">⚡ Generate &amp; Activate</button>
+      <button class="btn-secondary" style="margin-top:8px;" onclick="closeActivateModal()">Cancel</button>
     </div>
   </div>
 </div>
