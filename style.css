@@ -55,6 +55,7 @@ input,select,textarea{font-family:inherit;}
 .home-title{font-size:var(--fs-md);font-weight:800;color:var(--text);}
 .home-sub{font-size:var(--fs-xs);color:var(--muted);}
 .theme-btn{margin-left:auto;background:var(--card);border:1px solid var(--border);color:var(--text2);width:36px;height:36px;border-radius:10px;font-size:16px;display:flex;align-items:center;justify-content:center;}
+.install-btn{margin-left:8px;background:var(--blue);border:none;color:#fff;width:36px;height:36px;border-radius:10px;font-size:16px;display:flex;align-items:center;justify-content:center;cursor:pointer;}
 .home-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:20px;padding-bottom:calc(24px + env(safe-area-inset-bottom));}
 .home-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;}
 

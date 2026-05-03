@@ -7,6 +7,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SCS License">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔑</text></svg>">
 <meta name="theme-color" content="#f0f4f8" id="themeColorMeta">
 <title>SCS License</title>
@@ -25,6 +27,7 @@
       <div class="home-sub">Club Scheduler Pro</div>
     </div>
     <button class="theme-btn" id="themeBtn" onclick="toggleTheme()">🌙</button>
+    <button class="install-btn" id="installBtn" onclick="triggerInstall()" style="display:none" title="Add to Home Screen">📲</button>
   </div>
   <div class="home-scroll">
     <div class="home-grid">
@@ -320,5 +323,32 @@
 </div><!-- #app -->
 <div class="toast" id="toast"></div>
 <script src="app.js"></script>
+<script>
+// ── PWA Install ──────────────────────────────────────────────
+let _installPrompt = null;
+
+window.addEventListener('beforeinstallprompt', function(e) {
+  e.preventDefault();
+  _installPrompt = e;
+  document.getElementById('installBtn').style.display = '';
+});
+
+window.addEventListener('appinstalled', function() {
+  document.getElementById('installBtn').style.display = 'none';
+  _installPrompt = null;
+});
+
+function triggerInstall() {
+  if (_installPrompt) {
+    _installPrompt.prompt();
+    _installPrompt.userChoice.then(function() { _installPrompt = null; });
+  }
+}
+
+// ── Service Worker ───────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(function() {});
+}
+</script>
 </body>
 </html>
