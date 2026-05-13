@@ -437,3 +437,174 @@ function _calcExpiry(duration) {
   if (duration === '1y')   now.setDate(now.getDate() + 365);
   return now.toISOString();
 }
+
+// ── ALL CLUBS ──────────────────────────────────────────────
+
+let clubsAuthed = false;
+let allClubsData = [];
+
+async function clubsAuthLogin() {
+  const pw    = document.getElementById('clubsAuthPw').value.trim();
+  const errEl = document.getElementById('clubsAuthError');
+  errEl.textContent = '';
+  if (!pw) { errEl.textContent = 'Password required'; return; }
+
+  const btn = event.target;
+  btn.innerHTML = '<span class="inline-spinner"></span>'; btn.disabled = true;
+
+  try {
+    const cfg = await wPost('/sub/app-config', {});
+    if (!cfg) { errEl.textContent = 'Could not reach server'; return; }
+    const adminPw = cfg.admin_password || cfg.adminPassword;
+    if (!adminPw || pw !== adminPw) { errEl.textContent = 'Incorrect password'; return; }
+
+    clubsAuthed = true;
+    document.getElementById('clubsAuthGate').style.display = 'none';
+    document.getElementById('clubsContent').style.display  = '';
+    loadClubs();
+  } catch(e) {
+    errEl.textContent = 'Error: ' + e.message;
+  } finally {
+    btn.innerHTML = '🔐 Login'; btn.disabled = false;
+  }
+}
+
+async function loadClubs() {
+  if (!clubsAuthed) return;
+  const listEl  = document.getElementById('clubsList');
+  const countEl = document.getElementById('clubsCount');
+  listEl.innerHTML = '<div class="no-requests">Loading clubs…</div>';
+
+  const data = await wPost('/sub/admin-clubs', {});
+  if (!data || !data.clubs) {
+    listEl.innerHTML = '<div class="no-requests">Failed to load clubs.</div>';
+    return;
+  }
+
+  allClubsData = data.clubs;
+  renderClubs(allClubsData);
+}
+
+function renderClubs(clubs) {
+  const listEl  = document.getElementById('clubsList');
+  const countEl = document.getElementById('clubsCount');
+  countEl.textContent = clubs.length + ' club' + (clubs.length !== 1 ? 's' : '');
+
+  if (!clubs.length) {
+    listEl.innerHTML = '<div class="no-requests">No clubs found.</div>';
+    return;
+  }
+
+  listEl.innerHTML = clubs.map(c => {
+    const created = c.created_at
+      ? new Date(c.created_at).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })
+      : '—';
+    const owner = c.owner_email || c.owner || '—';
+    return `<div class="club-card">
+      <div class="club-card-name">🏢 ${escHtml(c.name || c.club_name || 'Unnamed')}</div>
+      <div class="club-card-meta">Created: ${created}</div>
+      <div class="club-card-owner">👤 ${escHtml(owner)}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── SUBSCRIBERS ────────────────────────────────────────────
+
+let subsAuthed    = false;
+let allSubsData   = [];
+let subsCurrentFilter = 'all';
+
+async function subsAuthLogin() {
+  const pw    = document.getElementById('subsAuthPw').value.trim();
+  const errEl = document.getElementById('subsAuthError');
+  errEl.textContent = '';
+  if (!pw) { errEl.textContent = 'Password required'; return; }
+
+  const btn = event.target;
+  btn.innerHTML = '<span class="inline-spinner"></span>'; btn.disabled = true;
+
+  try {
+    const cfg = await wPost('/sub/app-config', {});
+    if (!cfg) { errEl.textContent = 'Could not reach server'; return; }
+    const adminPw = cfg.admin_password || cfg.adminPassword;
+    if (!adminPw || pw !== adminPw) { errEl.textContent = 'Incorrect password'; return; }
+
+    subsAuthed = true;
+    document.getElementById('subsAuthGate').style.display = 'none';
+    document.getElementById('subsContent').style.display  = '';
+    loadSubscribers();
+  } catch(e) {
+    errEl.textContent = 'Error: ' + e.message;
+  } finally {
+    btn.innerHTML = '🔐 Login'; btn.disabled = false;
+  }
+}
+
+async function loadSubscribers() {
+  if (!subsAuthed) return;
+  const listEl  = document.getElementById('subsList');
+  const countEl = document.getElementById('subsCount');
+  listEl.innerHTML = '<div class="no-requests">Loading subscribers…</div>';
+
+  const data = await wPost('/sub/admin-subscribers', {});
+  if (!data || !data.subscribers) {
+    listEl.innerHTML = '<div class="no-requests">Failed to load subscribers.</div>';
+    return;
+  }
+
+  allSubsData = data.subscribers;
+  renderSubs(allSubsData);
+}
+
+function subsFilter(plan, btn) {
+  subsCurrentFilter = plan;
+  document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  const filtered = plan === 'all'
+    ? allSubsData
+    : allSubsData.filter(s => (s.plan || 'trial') === plan);
+  renderSubs(filtered);
+}
+
+function renderSubs(subs) {
+  const listEl  = document.getElementById('subsList');
+  const countEl = document.getElementById('subsCount');
+  countEl.textContent = subs.length + ' user' + (subs.length !== 1 ? 's' : '');
+
+  if (!subs.length) {
+    listEl.innerHTML = '<div class="no-requests">No subscribers found.</div>';
+    return;
+  }
+
+  const iconMap  = { pro: '⚡', basic: '👁', trial: '⏳' };
+  const nameMap  = { pro: 'Pro', basic: 'Basic', trial: 'Trial' };
+  const badgeMap = { pro: 'badge-pro', basic: 'badge-basic', trial: 'badge-trial' };
+
+  listEl.innerHTML = subs.map(s => {
+    const plan    = s.plan || 'trial';
+    const expiry  = s.expires_at;
+    const expired = expiry && new Date(expiry) < new Date();
+    const expiryTxt = !expiry ? '∞ Lifetime'
+      : (expired ? '⚠️ Expired ' : '') +
+        new Date(expiry).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+    const expiryClass = !expiry ? 'green' : expired ? 'red' : '';
+
+    return `<div class="sub-card">
+      <div class="sub-card-left">
+        <div class="sub-card-email">${escHtml(s.email || '—')}</div>
+        <div class="sub-card-expiry ${expiryClass}">${expiryTxt}</div>
+      </div>
+      <span class="plan-badge ${badgeMap[plan] || ''}">${iconMap[plan] || '🔑'} ${nameMap[plan] || plan}</span>
+    </div>`;
+  }).join('');
+}
+
+// ── Helpers ────────────────────────────────────────────────
+
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
