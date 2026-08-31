@@ -28,6 +28,42 @@ function toggleTheme() {
 }
 
 // ── Screen navigation ──────────────────────────────────────
+const ADMIN_AUTH_KEY = 'scsLicAdminAuthed';
+
+function isAdminRemembered() {
+  return localStorage.getItem(ADMIN_AUTH_KEY) === '1';
+}
+
+function rememberAdminLogin() {
+  localStorage.setItem(ADMIN_AUTH_KEY, '1');
+}
+
+function forgetAdminLogin() {
+  localStorage.removeItem(ADMIN_AUTH_KEY);
+}
+
+function applyRememberedAdminAuth(name) {
+  if (!isAdminRemembered()) return;
+
+  adminAuthed = true;
+  clubsAuthed = true;
+  subsAuthed  = true;
+
+  if (name === 'admin') {
+    document.getElementById('adminLoginSection').style.display = 'none';
+    document.getElementById('adminDashSection').style.display  = '';
+    adminLoadRequests();
+  } else if (name === 'clubs') {
+    document.getElementById('clubsAuthGate').style.display = 'none';
+    document.getElementById('clubsContent').style.display  = '';
+    loadClubs();
+  } else if (name === 'subscribers') {
+    document.getElementById('subsAuthGate').style.display = 'none';
+    document.getElementById('subsContent').style.display  = '';
+    loadSubscribers();
+  }
+}
+
 function showScreen(name) {
   if (name === 'request') {
     const ce = document.getElementById('checkEmail').value.trim();
@@ -36,6 +72,7 @@ function showScreen(name) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById('screen-' + name).classList.add('active');
   window.scrollTo(0, 0);
+  applyRememberedAdminAuth(name);
 }
 
 // ── Toast ──────────────────────────────────────────────────
@@ -211,6 +248,9 @@ async function adminLogin() {
     if (pw !== adminPw) { errEl.textContent = 'Incorrect password'; return; }
 
     adminAuthed = true;
+    clubsAuthed = true;
+    subsAuthed  = true;
+    rememberAdminLogin();
     document.getElementById('adminLoginSection').style.display = 'none';
     document.getElementById('adminDashSection').style.display  = '';
     adminLoadRequests();
@@ -222,7 +262,14 @@ async function adminLogin() {
 }
 
 function adminLogout() {
+  forgetAdminLogin();
   adminAuthed = false;
+  clubsAuthed = false;
+  subsAuthed  = false;
+  document.getElementById('clubsAuthGate').style.display = '';
+  document.getElementById('clubsContent').style.display  = 'none';
+  document.getElementById('subsAuthGate').style.display  = '';
+  document.getElementById('subsContent').style.display   = 'none';
   showScreen('home');
   adminReset();
 }
@@ -459,6 +506,9 @@ async function clubsAuthLogin() {
     if (!adminPw || pw !== adminPw) { errEl.textContent = 'Incorrect password'; return; }
 
     clubsAuthed = true;
+    adminAuthed = true;
+    subsAuthed  = true;
+    rememberAdminLogin();
     document.getElementById('clubsAuthGate').style.display = 'none';
     document.getElementById('clubsContent').style.display  = '';
     loadClubs();
@@ -530,6 +580,9 @@ async function subsAuthLogin() {
     if (!adminPw || pw !== adminPw) { errEl.textContent = 'Incorrect password'; return; }
 
     subsAuthed = true;
+    adminAuthed = true;
+    clubsAuthed = true;
+    rememberAdminLogin();
     document.getElementById('subsAuthGate').style.display = 'none';
     document.getElementById('subsContent').style.display  = '';
     loadSubscribers();

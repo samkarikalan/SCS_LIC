@@ -1,4 +1,4 @@
-const CACHE = 'scs-lic-v1';
+const CACHE = 'scs-lic-v2';
 const ASSETS = [
   '/SCS_LIC/',
   '/SCS_LIC/index.html',
