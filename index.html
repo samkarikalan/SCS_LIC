@@ -205,6 +205,47 @@
     </div>
   </div>
 
+
+  <!-- CLUB DETAIL SCREEN -->
+  <div id="screen-club-detail" class="screen">
+    <div class="screen-header">
+      <button class="back-btn" onclick="showScreen('clubs')">‹ Clubs</button>
+      <h1 id="clubDetailHeader">Club</h1>
+      <button class="icon-btn" onclick="reloadClubDetail()">↻</button>
+    </div>
+    <div class="screen-scroll club-detail-scroll">
+      <div id="clubDetailSummary" class="club-detail-summary"></div>
+
+      <div class="club-detail-section">
+        <div class="club-detail-section-head">
+          <div>
+            <div class="club-detail-kicker">PEOPLE</div>
+            <h2>Members</h2>
+          </div>
+          <span id="clubDetailMemberCount" class="club-detail-count">—</span>
+        </div>
+        <div id="clubDetailMembers"><div class="no-requests">Loading members…</div></div>
+      </div>
+
+      <div class="club-detail-section">
+        <div class="club-detail-section-head">
+          <div>
+            <div class="club-detail-kicker">ACTIVITY</div>
+            <h2>Sessions</h2>
+          </div>
+          <span id="clubDetailSessionCount" class="club-detail-count">—</span>
+        </div>
+        <div id="clubDetailSessions"><div class="no-requests">Loading sessions…</div></div>
+      </div>
+
+      <div class="club-danger-card">
+        <div class="club-danger-title">Delete Club</div>
+        <div class="club-danger-copy">Permanently remove this club from SCS. You will be asked to confirm before anything is deleted.</div>
+        <button id="deleteClubBtn" class="club-delete-btn" onclick="deleteSelectedClub()">🗑 Delete this club</button>
+      </div>
+    </div>
+  </div>
+
   <!-- SUBSCRIBERS SCREEN -->
   <div id="screen-subscribers" class="screen">
     <div class="screen-header">

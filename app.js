@@ -532,6 +532,10 @@ async function _dbGet(table, query) {
   return await wPost('/db/get', { table, query: query || 'select=*' });
 }
 
+async function _dbDelete(table, query) {
+  return await wPost('/db/delete', { table, query });
+}
+
 function _firstValue(row, keys, fallback='—') {
   for (const key of keys) {
     const value = row && row[key];
@@ -680,17 +684,169 @@ function renderClubs(clubs) {
     return;
   }
 
-  listEl.innerHTML = clubs.map(c => {
+  listEl.innerHTML = clubs.map((c, index) => {
     const created = c.created_at
       ? new Date(c.created_at).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })
       : '—';
     const owner = c.owner_email || c.owner || '—';
-    return `<div class="club-card">
+    return `<div class="club-card" role="button" tabindex="0" onclick="openClubDetail(${index})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openClubDetail(${index})}">
       <div class="club-card-name">🏢 ${escHtml(c.name || c.club_name || 'Unnamed')}</div>
       <div class="club-card-meta">Created: ${created}</div>
       <div class="club-card-owner">👤 ${escHtml(owner)}</div>
+      <div class="club-card-view">VIEW MEMBERS & SESSIONS</div>
     </div>`;
   }).join('');
+}
+
+let selectedClub = null;
+
+function _rows(result) {
+  if (Array.isArray(result)) return result;
+  if (result && Array.isArray(result.data)) return result.data;
+  return [];
+}
+
+function _clubDate(value) {
+  if (!value) return '—';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+}
+
+async function openClubDetail(index) {
+  selectedClub = allClubsData[index] || null;
+  if (!selectedClub) return;
+  showScreen('club-detail');
+  document.getElementById('clubDetailHeader').textContent = 'Club';
+  await loadClubDetail();
+}
+
+async function reloadClubDetail() {
+  if (selectedClub) await loadClubDetail();
+}
+
+async function loadClubDetail() {
+  const club = selectedClub;
+  if (!club) return;
+  const clubId = club.id;
+  const name = club.name || club.club_name || 'Unnamed Club';
+  const owner = club.owner_email || club.owner || '—';
+  document.getElementById('clubDetailHeader').textContent = name;
+  document.getElementById('clubDetailSummary').innerHTML = `
+    <div class="club-detail-name">🏢 ${escHtml(name)}</div>
+    <div class="club-detail-owner">👤 ${escHtml(owner)}</div>
+    <div class="club-detail-created">Created ${escHtml(_clubDate(club.created_at))}</div>
+    <div class="club-detail-id">Club ID: ${escHtml(String(clubId || '—'))}</div>`;
+
+  const membersEl = document.getElementById('clubDetailMembers');
+  const sessionsEl = document.getElementById('clubDetailSessions');
+  const memberCountEl = document.getElementById('clubDetailMemberCount');
+  const sessionCountEl = document.getElementById('clubDetailSessionCount');
+  membersEl.innerHTML = '<div class="no-requests">Loading members…</div>';
+  sessionsEl.innerHTML = '<div class="no-requests">Loading sessions…</div>';
+  memberCountEl.textContent = '—';
+  sessionCountEl.textContent = '—';
+
+  try {
+    const [membershipResult, sessionResult, liveResult] = await Promise.all([
+      _dbGet('memberships', 'club_id=eq.' + encodeURIComponent(clubId) + '&select=*&order=created_at.asc'),
+      _dbGet('sessions', 'club_id=eq.' + encodeURIComponent(clubId) + '&select=*&order=created_at.desc&limit=100'),
+      _dbGet('live_sessions', 'club_id=eq.' + encodeURIComponent(clubId) + '&select=*&limit=100')
+    ]);
+
+    const memberships = _rows(membershipResult);
+    const accountIds = [...new Set(memberships.map(m => m.user_account_id).filter(Boolean))];
+    let accounts = [];
+    if (accountIds.length) {
+      accounts = _rows(await _dbGet('user_accounts', 'id=in.(' + accountIds.map(encodeURIComponent).join(',') + ')&select=id,nickname,email'));
+    }
+    const accountMap = new Map(accounts.map(a => [String(a.id), a]));
+
+    memberCountEl.textContent = memberships.length;
+    if (!memberships.length) {
+      membersEl.innerHTML = '<div class="no-requests">No members found.</div>';
+    } else {
+      membersEl.innerHTML = memberships.map(m => {
+        const a = accountMap.get(String(m.user_account_id || '')) || {};
+        const memberName = a.nickname || m.nickname || a.email || 'Member';
+        const email = a.email || m.email || '';
+        return `<div class="club-member-row">
+          <div class="club-member-avatar">👤</div>
+          <div class="club-member-main">
+            <div class="club-member-name">${escHtml(String(memberName))}</div>
+            ${email ? `<div class="club-member-email">${escHtml(String(email))}</div>` : ''}
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    const savedSessions = _rows(sessionResult).map(r => ({...r, __live:false}));
+    const liveSessions = _rows(liveResult).map(r => ({...r, __live:true}));
+    const seen = new Set();
+    const sessions = [...liveSessions, ...savedSessions].filter(r => {
+      const key = String(r.session_id || r.id || '') + '|' + String(r.created_at || r.started_at || '');
+      if (seen.has(key)) return false;
+      seen.add(key); return true;
+    }).sort((a,b) => {
+      const ad = new Date(a.updated_at || a.started_at || a.created_at || 0).getTime() || 0;
+      const bd = new Date(b.updated_at || b.started_at || b.created_at || 0).getTime() || 0;
+      return bd-ad;
+    });
+
+    sessionCountEl.textContent = sessions.length;
+    if (!sessions.length) {
+      sessionsEl.innerHTML = '<div class="no-requests">No sessions found for this club.</div>';
+    } else {
+      sessionsEl.innerHTML = sessions.map(r => {
+        const title = _firstValue(r, ['title','session_name','slot_name','venue_name','venue','location'], 'SCS Session');
+        const dateRaw = _firstValue(r, ['updated_at','started_at','session_date','date','created_at'], null);
+        const d = dateRaw ? new Date(dateRaw) : null;
+        const dateText = d && !Number.isNaN(d.getTime()) ? d.toLocaleString([], {day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
+        const players = _asCount(_firstValue(r, ['player_count','players_count','active_player_count','players','activeplayers'], null));
+        const rounds = _asCount(_firstValue(r, ['round_count','rounds_count','current_round','round_no','rounds'], null));
+        const id = _firstValue(r, ['session_id','id'], '');
+        return `<div class="club-session-row">
+          <div class="club-session-top">
+            ${r.__live ? '<span class="club-live-mini">LIVE</span>' : ''}
+            <div class="club-session-title">${escHtml(String(title))}</div>
+            <div class="club-session-date">${escHtml(dateText)}</div>
+          </div>
+          <div class="club-session-meta">
+            ${players !== '—' ? `<span>👥 ${escHtml(String(players))}</span>` : ''}
+            ${rounds !== '—' ? `<span>🔄 ${escHtml(String(rounds))} rounds</span>` : ''}
+            ${id ? `<span># ${escHtml(String(id).slice(0,12))}</span>` : ''}
+          </div>
+        </div>`;
+      }).join('');
+    }
+  } catch (e) {
+    membersEl.innerHTML = '<div class="no-requests">Could not load members.</div>';
+    sessionsEl.innerHTML = '<div class="no-requests">Could not load sessions.</div>';
+  }
+}
+
+async function deleteSelectedClub() {
+  if (!selectedClub || !isAdminRemembered()) return;
+  const name = selectedClub.name || selectedClub.club_name || 'this club';
+  const typed = window.prompt(`Delete “${name}”?\n\nThis permanently removes the club. Type DELETE to confirm.`);
+  if (typed !== 'DELETE') return;
+
+  const btn = document.getElementById('deleteClubBtn');
+  btn.disabled = true;
+  btn.textContent = 'Deleting…';
+  try {
+    const result = await _dbDelete('clubs', 'id=eq.' + encodeURIComponent(selectedClub.id));
+    if (!result || result.ok !== true) throw new Error('Delete failed');
+    toast('Club deleted');
+    selectedClub = null;
+    showScreen('clubs');
+    await loadClubs();
+  } catch (e) {
+    toast('Could not delete club');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🗑 Delete this club';
+  }
 }
 
 // ── SUBSCRIBERS ────────────────────────────────────────────
