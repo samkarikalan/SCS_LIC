@@ -564,8 +564,11 @@ async function loadLiveSessions() {
   updatedEl.textContent = 'Refreshing…';
 
   try {
+    // Global admin feed: intentionally NO club_id, membership, organizer or user filter.
+    // The worker exposes live_sessions as a read-only DB table, so this returns
+    // every live-session row visible to the SCS backend across all clubs.
     const [rowsResult, clubsResult] = await Promise.all([
-      _dbGet('live_sessions', 'select=*&limit=100'),
+      _dbGet('live_sessions', 'select=*&limit=500'),
       _dbGet('clubs', 'select=*&limit=500')
     ]);
 
@@ -578,7 +581,7 @@ async function loadLiveSessions() {
     updatedEl.textContent = 'Updated ' + new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
 
     if (!rows.length) {
-      listEl.innerHTML = '<div class="live-empty"><div class="live-empty-icon">📡</div><strong>No live SCS sessions</strong><br><span>Nothing is active right now.</span></div>';
+      listEl.innerHTML = '<div class="live-empty"><div class="live-empty-icon">📡</div><strong>No SCS sessions are live now</strong><br><span>This page reads the same live-session feed used by scs-app.</span></div>';
       return;
     }
 
