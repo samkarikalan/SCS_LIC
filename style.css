@@ -580,3 +580,89 @@ html[data-theme="dark"] .tile-subs {
 .badge-pro   { background:rgba(16,185,129,.12); color:var(--green);  padding:3px 9px; border-radius:20px; font-size:var(--fs-xs); font-weight:700; }
 .badge-basic { background:rgba(14,165,233,.12); color:var(--accent); padding:3px 9px; border-radius:20px; font-size:var(--fs-xs); font-weight:700; }
 .badge-trial { background:rgba(245,158,11,.12); color:var(--amber);  padding:3px 9px; border-radius:20px; font-size:var(--fs-xs); font-weight:700; }
+
+
+/* ============================================================
+   HOME DASHBOARD REFRESH + LIVE SESSIONS
+============================================================ */
+.home-header{
+  padding:14px 18px;
+  padding-top:calc(14px + env(safe-area-inset-top));
+  gap:12px;
+  box-shadow:none;
+}
+.home-logo{width:44px;height:44px;border-radius:15px;font-size:22px;box-shadow:0 8px 18px rgba(14,165,233,.20);}
+.home-title{font-size:20px;line-height:1.05;}
+.home-sub{font-size:13px;margin-top:3px;}
+.theme-btn{width:40px;height:40px;border-radius:13px;}
+.home-scroll{padding:18px 18px calc(28px + env(safe-area-inset-bottom));}
+.dashboard-intro{padding:4px 2px 17px;}
+.dashboard-eyebrow{font-size:11px;font-weight:800;letter-spacing:.14em;color:var(--accent);}
+.dashboard-title{font-size:25px;font-weight:800;letter-spacing:-.02em;margin-top:3px;color:var(--text);}
+.dashboard-copy{font-size:13px;color:var(--muted);line-height:1.45;margin-top:4px;}
+.dashboard-grid{gap:12px;margin-bottom:12px;}
+.home-tile{
+  min-height:142px;
+  border-radius:20px;
+  padding:15px;
+  gap:3px;
+  text-align:left;
+  box-shadow:0 1px 0 rgba(255,255,255,.6) inset,0 7px 16px rgba(37,49,67,.08);
+}
+.home-tile::before{border-radius:20px;background:linear-gradient(155deg,rgba(255,255,255,.40),rgba(255,255,255,0) 50%);}
+.home-tile:active{transform:scale(.985);box-shadow:0 3px 10px rgba(37,49,67,.08);}
+.tile-top{display:flex;align-items:center;width:100%;margin-bottom:12px;position:relative;z-index:1;}
+.tile-icon{font-size:24px;margin:0;}
+.tile-arrow{margin-left:auto;font-size:25px;line-height:1;color:rgba(0,0,0,.32);font-weight:500;}
+.tile-label{font-size:10px;letter-spacing:.11em;position:relative;z-index:1;}
+.tile-info{font-size:18px;font-weight:800;line-height:1.15;margin-top:auto;position:relative;z-index:1;}
+.tile-sub{font-size:12px;line-height:1.25;margin-top:3px;position:relative;z-index:1;}
+.tile-check{background:linear-gradient(145deg,#dff5ff,#9fe0fb);}
+.tile-admin{background:linear-gradient(145deg,#fff1b7,#ffd45f);}
+.tile-clubs{background:linear-gradient(145deg,#e8ebff,#c9d1ff);}
+.tile-subs{background:linear-gradient(145deg,#ffeaf5,#ffcfe5);}
+.home-live-tile{
+  width:100%;min-height:132px;margin:0;
+  background:linear-gradient(135deg,#c7f9df 0%,#94efbd 100%);
+  overflow:hidden;
+}
+.home-live-tile::after{content:'';position:absolute;width:150px;height:150px;border-radius:50%;right:-46px;bottom:-82px;border:22px solid rgba(255,255,255,.22);}
+.live-tile-top{margin-bottom:8px;}
+.live-badge{margin-left:9px;padding:4px 8px;border-radius:20px;background:rgba(5,122,76,.12);color:#057a4c;font-size:10px;letter-spacing:.12em;font-weight:800;}
+.live-pulse{position:absolute;width:9px;height:9px;border-radius:50%;background:#10b981;right:17px;bottom:16px;box-shadow:0 0 0 7px rgba(16,185,129,.14);z-index:2;}
+html[data-theme="dark"] .tile-arrow{color:rgba(255,255,255,.34);}
+html[data-theme="dark"] .tile-check{background:linear-gradient(145deg,#102b3b,#0b2230);}
+html[data-theme="dark"] .tile-admin{background:linear-gradient(145deg,#3c2b08,#281b04);}
+html[data-theme="dark"] .tile-clubs{background:linear-gradient(145deg,#222650,#181b39);}
+html[data-theme="dark"] .tile-subs{background:linear-gradient(145deg,#442039,#2b1425);}
+html[data-theme="dark"] .home-live-tile{background:linear-gradient(145deg,#103828,#0c2b20);}
+html[data-theme="dark"] .live-badge{background:rgba(52,211,153,.14);color:#6ee7b7;}
+
+.live-screen-pad{padding:18px;}
+.live-summary-card{display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border-radius:20px;padding:18px 20px;margin-bottom:12px;box-shadow:0 10px 24px rgba(16,185,129,.18);}
+.live-summary-label{font-size:11px;font-weight:800;letter-spacing:.14em;opacity:.76;}
+.live-summary-count{font-size:34px;font-weight:800;line-height:1.05;margin-top:3px;}
+.live-summary-dot{width:14px;height:14px;border-radius:50%;background:#fff;box-shadow:0 0 0 8px rgba(255,255,255,.18);}
+.live-toolbar{display:flex;align-items:center;justify-content:space-between;margin:4px 0 12px;}
+.live-updated{font-size:12px;color:var(--muted);}
+.live-session-card{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:16px;margin-bottom:11px;box-shadow:var(--shadow);}
+.live-card-head{display:flex;align-items:flex-start;gap:10px;}
+.live-status-pill{display:inline-flex;align-items:center;gap:6px;background:rgba(16,185,129,.10);color:var(--green);padding:5px 9px;border-radius:20px;font-size:10px;font-weight:800;letter-spacing:.08em;flex-shrink:0;}
+.live-status-pill::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor;}
+.live-club-name{font-size:17px;font-weight:800;color:var(--text);line-height:1.2;flex:1;}
+.live-card-time{font-size:11px;color:var(--muted);white-space:nowrap;}
+.live-meta-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px;}
+.live-meta{background:var(--card);border-radius:11px;padding:9px 8px;text-align:center;min-width:0;}
+.live-meta-value{font-size:14px;font-weight:800;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.live-meta-label{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:2px;}
+.live-card-foot{margin-top:11px;padding-top:10px;border-top:1px solid var(--border);display:flex;justify-content:space-between;gap:10px;font-size:11px;color:var(--muted);}
+.live-empty{background:var(--surface);border:1px dashed var(--border2);border-radius:18px;padding:34px 18px;text-align:center;color:var(--muted);font-size:14px;}
+.live-empty-icon{font-size:30px;margin-bottom:8px;}
+
+@media (max-width:360px){
+  .home-scroll{padding-left:14px;padding-right:14px;}
+  .dashboard-grid{gap:10px;}
+  .home-tile{min-height:135px;padding:13px;}
+  .tile-info{font-size:17px;}
+  .live-meta-grid{gap:6px;}
+}

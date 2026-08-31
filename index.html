@@ -28,36 +28,45 @@
     </div>
 
     <div class="home-scroll">
-      <!-- Row 1: Check Status + Admin (2-col) -->
-      <div class="home-grid">
+      <div class="dashboard-intro">
+        <div class="dashboard-eyebrow">SCS CONTROL CENTER</div>
+        <div class="dashboard-title">License &amp; activity</div>
+        <div class="dashboard-copy">Manage access and see what is happening in SCS.</div>
+      </div>
+
+      <div class="home-grid dashboard-grid">
         <button class="home-tile tile-check" onclick="showScreen('check')">
-          <span class="tile-icon">🔍</span>
+          <span class="tile-top"><span class="tile-icon">🔎</span><span class="tile-arrow">›</span></span>
           <span class="tile-label">Check Status</span>
-          <span class="tile-info">View my plan</span>
-          <span class="tile-sub">Enter your email</span>
+          <span class="tile-info">Plan lookup</span>
+          <span class="tile-sub">Check a user license</span>
         </button>
         <button class="home-tile tile-admin" onclick="showScreen('admin')">
-          <span class="tile-icon">🔐</span>
+          <span class="tile-top"><span class="tile-icon">🔐</span><span class="tile-arrow">›</span></span>
           <span class="tile-label">Admin</span>
-          <span class="tile-info">Manage licenses</span>
-          <span class="tile-sub">Password required</span>
+          <span class="tile-info">Licenses</span>
+          <span class="tile-sub">Activate &amp; manage</span>
+        </button>
+        <button class="home-tile tile-clubs" onclick="showScreen('clubs')">
+          <span class="tile-top"><span class="tile-icon">🏢</span><span class="tile-arrow">›</span></span>
+          <span class="tile-label">All Clubs</span>
+          <span class="tile-info">Clubs</span>
+          <span class="tile-sub">Owners &amp; registration</span>
+        </button>
+        <button class="home-tile tile-subs" onclick="showScreen('subscribers')">
+          <span class="tile-top"><span class="tile-icon">👥</span><span class="tile-arrow">›</span></span>
+          <span class="tile-label">Subscribers</span>
+          <span class="tile-info">Users</span>
+          <span class="tile-sub">Trial · Pro · Basic</span>
         </button>
       </div>
 
-      <!-- Row 2: All Clubs (full-width) -->
-      <button class="home-tile tile-clubs home-tile-full" onclick="showScreen('clubs')">
-        <span class="tile-icon">🏢</span>
-        <span class="tile-label">All Clubs</span>
-        <span class="tile-info">Clubs &amp; owners</span>
-        <span class="tile-sub">View all registered clubs</span>
-      </button>
-
-      <!-- Row 3: Subscribers (full-width) -->
-      <button class="home-tile tile-subs home-tile-full" onclick="showScreen('subscribers')">
-        <span class="tile-icon">👥</span>
-        <span class="tile-label">Subscribers</span>
-        <span class="tile-info">Trial · Pro · Basic</span>
-        <span class="tile-sub">All subscription users</span>
+      <button class="home-tile tile-live home-live-tile" onclick="showScreen('live')">
+        <span class="live-pulse" aria-hidden="true"></span>
+        <span class="tile-top live-tile-top"><span class="tile-icon">📡</span><span class="live-badge">LIVE</span><span class="tile-arrow">›</span></span>
+        <span class="tile-label">SCS Live Sessions</span>
+        <span class="tile-info">See active sessions now</span>
+        <span class="tile-sub">Clubs · rounds · players · latest activity</span>
       </button>
     </div>
   </div>
@@ -229,6 +238,41 @@
         <div id="subsList"></div>
       </div>
 
+    </div>
+  </div>
+
+  <!-- LIVE SESSIONS SCREEN -->
+  <div id="screen-live" class="screen">
+    <div class="screen-header">
+      <button class="back-btn" onclick="showScreen('home')">‹ Back</button>
+      <h1>Live Sessions</h1>
+      <button class="icon-btn" onclick="loadLiveSessions()">↻</button>
+    </div>
+    <div class="screen-scroll live-screen-pad">
+      <div id="liveAuthGate" class="section-card">
+        <div class="section-title">Admin Access Required</div>
+        <div class="field" style="margin-bottom:10px;">
+          <input type="password" id="liveAuthPw" placeholder="Admin password"
+            onkeydown="if(event.key==='Enter')liveAuthLogin()">
+        </div>
+        <button class="btn-primary" onclick="liveAuthLogin()">🔐 Login</button>
+        <div class="submit-error" id="liveAuthError" style="margin-top:8px;"></div>
+      </div>
+
+      <div id="liveContent" style="display:none;">
+        <div class="live-summary-card">
+          <div>
+            <div class="live-summary-label">ACTIVE NOW</div>
+            <div class="live-summary-count" id="liveCount">—</div>
+          </div>
+          <div class="live-summary-dot"></div>
+        </div>
+        <div class="live-toolbar">
+          <div id="liveUpdated" class="live-updated">Loading…</div>
+          <button class="icon-btn" onclick="loadLiveSessions()">↻ Refresh</button>
+        </div>
+        <div id="liveSessionsList"></div>
+      </div>
     </div>
   </div>
 

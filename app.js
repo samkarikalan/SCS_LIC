@@ -48,6 +48,7 @@ function applyRememberedAdminAuth(name) {
   adminAuthed = true;
   clubsAuthed = true;
   subsAuthed  = true;
+  liveAuthed  = true;
 
   if (name === 'admin') {
     document.getElementById('adminLoginSection').style.display = 'none';
@@ -61,6 +62,10 @@ function applyRememberedAdminAuth(name) {
     document.getElementById('subsAuthGate').style.display = 'none';
     document.getElementById('subsContent').style.display  = '';
     loadSubscribers();
+  } else if (name === 'live') {
+    document.getElementById('liveAuthGate').style.display = 'none';
+    document.getElementById('liveContent').style.display  = '';
+    loadLiveSessions();
   }
 }
 
@@ -250,6 +255,7 @@ async function adminLogin() {
     adminAuthed = true;
     clubsAuthed = true;
     subsAuthed  = true;
+    liveAuthed  = true;
     rememberAdminLogin();
     document.getElementById('adminLoginSection').style.display = 'none';
     document.getElementById('adminDashSection').style.display  = '';
@@ -266,10 +272,13 @@ function adminLogout() {
   adminAuthed = false;
   clubsAuthed = false;
   subsAuthed  = false;
+  liveAuthed  = false;
   document.getElementById('clubsAuthGate').style.display = '';
   document.getElementById('clubsContent').style.display  = 'none';
   document.getElementById('subsAuthGate').style.display  = '';
   document.getElementById('subsContent').style.display   = 'none';
+  document.getElementById('liveAuthGate').style.display  = '';
+  document.getElementById('liveContent').style.display   = 'none';
   showScreen('home');
   adminReset();
 }
@@ -485,6 +494,128 @@ function _calcExpiry(duration) {
   return now.toISOString();
 }
 
+// ── LIVE SESSIONS ──────────────────────────────────────────
+
+let liveAuthed = false;
+let liveLoading = false;
+
+async function liveAuthLogin() {
+  const pw    = document.getElementById('liveAuthPw').value.trim();
+  const errEl = document.getElementById('liveAuthError');
+  errEl.textContent = '';
+  if (!pw) { errEl.textContent = 'Password required'; return; }
+
+  const btn = event.target;
+  btn.innerHTML = '<span class="inline-spinner"></span>'; btn.disabled = true;
+  try {
+    const cfg = await wPost('/sub/app-config', {});
+    if (!cfg) { errEl.textContent = 'Could not reach server'; return; }
+    const adminPw = cfg.admin_password || cfg.adminPassword;
+    if (!adminPw || pw !== adminPw) { errEl.textContent = 'Incorrect password'; return; }
+
+    liveAuthed = true;
+    adminAuthed = true;
+    clubsAuthed = true;
+    subsAuthed = true;
+    rememberAdminLogin();
+    document.getElementById('liveAuthGate').style.display = 'none';
+    document.getElementById('liveContent').style.display  = '';
+    loadLiveSessions();
+  } catch(e) {
+    errEl.textContent = 'Error: ' + e.message;
+  } finally {
+    btn.innerHTML = '🔐 Login'; btn.disabled = false;
+  }
+}
+
+async function _dbGet(table, query) {
+  return await wPost('/db/get', { table, query: query || 'select=*' });
+}
+
+function _firstValue(row, keys, fallback='—') {
+  for (const key of keys) {
+    const value = row && row[key];
+    if (value !== undefined && value !== null && value !== '') return value;
+  }
+  return fallback;
+}
+
+function _asCount(value) {
+  if (Array.isArray(value)) return value.length;
+  if (typeof value === 'number') return value;
+  if (typeof value === 'string' && value.trim() !== '' && !Number.isNaN(Number(value))) return Number(value);
+  if (value && typeof value === 'object') return Object.keys(value).length;
+  return '—';
+}
+
+function _liveDate(row) {
+  const raw = _firstValue(row, ['updated_at','last_seen_at','last_seen','heartbeat_at','started_at','created_at'], null);
+  const d = raw ? new Date(raw) : null;
+  return d && !Number.isNaN(d.getTime()) ? d : null;
+}
+
+async function loadLiveSessions() {
+  if (!liveAuthed || liveLoading) return;
+  liveLoading = true;
+  const listEl = document.getElementById('liveSessionsList');
+  const countEl = document.getElementById('liveCount');
+  const updatedEl = document.getElementById('liveUpdated');
+  listEl.innerHTML = '<div class="no-requests">Loading live sessions…</div>';
+  updatedEl.textContent = 'Refreshing…';
+
+  try {
+    const [rowsResult, clubsResult] = await Promise.all([
+      _dbGet('live_sessions', 'select=*&limit=100'),
+      _dbGet('clubs', 'select=*&limit=500')
+    ]);
+
+    const rows = Array.isArray(rowsResult) ? rowsResult : (rowsResult && Array.isArray(rowsResult.data) ? rowsResult.data : []);
+    const clubs = Array.isArray(clubsResult) ? clubsResult : (clubsResult && Array.isArray(clubsResult.data) ? clubsResult.data : []);
+    const clubMap = new Map(clubs.map(c => [String(c.id), c.name || c.club_name || c.title || '']));
+
+    rows.sort((a,b) => ((_liveDate(b)?.getTime() || 0) - (_liveDate(a)?.getTime() || 0)));
+    countEl.textContent = rows.length;
+    updatedEl.textContent = 'Updated ' + new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+
+    if (!rows.length) {
+      listEl.innerHTML = '<div class="live-empty"><div class="live-empty-icon">📡</div><strong>No live SCS sessions</strong><br><span>Nothing is active right now.</span></div>';
+      return;
+    }
+
+    listEl.innerHTML = rows.map(row => {
+      const clubId = _firstValue(row, ['club_id','clubId'], '');
+      const clubName = _firstValue(row, ['club_name','club','name'], clubMap.get(String(clubId)) || 'SCS Club');
+      const owner = _firstValue(row, ['organizer_name','organizer','owner_name','created_by_name','owner_email','email'], '—');
+      const rounds = _asCount(_firstValue(row, ['round_count','rounds_count','current_round','round_no','rounds'], null));
+      const players = _asCount(_firstValue(row, ['player_count','players_count','active_player_count','players','activeplayers'], null));
+      const courts = _asCount(_firstValue(row, ['court_count','courts_count','num_courts','courts'], null));
+      const date = _liveDate(row);
+      const timeText = date ? _timeAgo(date.toISOString()) : 'Live now';
+      const sessionId = _firstValue(row, ['session_id','id'], '—');
+
+      return `<div class="live-session-card">
+        <div class="live-card-head">
+          <span class="live-status-pill">LIVE</span>
+          <div class="live-club-name">${escHtml(String(clubName))}</div>
+          <div class="live-card-time">${escHtml(timeText)}</div>
+        </div>
+        <div class="live-meta-grid">
+          <div class="live-meta"><div class="live-meta-value">${escHtml(String(players))}</div><div class="live-meta-label">Players</div></div>
+          <div class="live-meta"><div class="live-meta-value">${escHtml(String(rounds))}</div><div class="live-meta-label">Rounds</div></div>
+          <div class="live-meta"><div class="live-meta-value">${escHtml(String(courts))}</div><div class="live-meta-label">Courts</div></div>
+        </div>
+        <div class="live-card-foot"><span>👤 ${escHtml(String(owner))}</span><span># ${escHtml(String(sessionId).slice(0,12))}</span></div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    countEl.textContent = '—';
+    updatedEl.textContent = 'Could not refresh';
+    listEl.innerHTML = '<div class="live-empty"><div class="live-empty-icon">⚠️</div><strong>Could not load live sessions</strong><br><span>Please try Refresh.</span></div>';
+  } finally {
+    liveLoading = false;
+  }
+}
+
 // ── ALL CLUBS ──────────────────────────────────────────────
 
 let clubsAuthed = false;
@@ -508,6 +639,7 @@ async function clubsAuthLogin() {
     clubsAuthed = true;
     adminAuthed = true;
     subsAuthed  = true;
+    liveAuthed  = true;
     rememberAdminLogin();
     document.getElementById('clubsAuthGate').style.display = 'none';
     document.getElementById('clubsContent').style.display  = '';
