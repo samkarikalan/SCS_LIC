@@ -738,43 +738,44 @@ async function loadClubDetail() {
     <div class="club-detail-created">Created ${escHtml(_clubDate(club.created_at))}</div>
     <div class="club-detail-id">Club ID: ${escHtml(String(clubId || '—'))}</div>`;
 
-  const membersEl = document.getElementById('clubDetailMembers');
+  const playersEl = document.getElementById('clubDetailMembers');
   const sessionsEl = document.getElementById('clubDetailSessions');
-  const memberCountEl = document.getElementById('clubDetailMemberCount');
+  const playerCountEl = document.getElementById('clubDetailMemberCount');
   const sessionCountEl = document.getElementById('clubDetailSessionCount');
-  membersEl.innerHTML = '<div class="no-requests">Loading members…</div>';
+  playersEl.innerHTML = '<div class="no-requests">Loading players…</div>';
   sessionsEl.innerHTML = '<div class="no-requests">Loading sessions…</div>';
-  memberCountEl.textContent = '—';
+  playerCountEl.textContent = '—';
   sessionCountEl.textContent = '—';
 
   try {
-    const [membershipResult, sessionResult, liveResult] = await Promise.all([
-      _dbGet('memberships', 'club_id=eq.' + encodeURIComponent(clubId) + '&select=*&order=created_at.asc'),
+    // Players are the club's complete registered player list from the same
+    // `players` table used by SCS Player Manager — not account memberships.
+    const [playerResult, sessionResult, liveResult] = await Promise.all([
+      _dbGet('players', 'club_id=eq.' + encodeURIComponent(clubId) + '&select=*'),
       _dbGet('sessions', 'club_id=eq.' + encodeURIComponent(clubId) + '&select=*&order=created_at.desc&limit=100'),
       _dbGet('live_sessions', 'club_id=eq.' + encodeURIComponent(clubId) + '&select=*&limit=100')
     ]);
 
-    const memberships = _rows(membershipResult);
-    const accountIds = [...new Set(memberships.map(m => m.user_account_id).filter(Boolean))];
-    let accounts = [];
-    if (accountIds.length) {
-      accounts = _rows(await _dbGet('user_accounts', 'id=in.(' + accountIds.map(encodeURIComponent).join(',') + ')&select=id,nickname,email'));
-    }
-    const accountMap = new Map(accounts.map(a => [String(a.id), a]));
+    const players = _rows(playerResult).sort((a, b) => {
+      const an = String(_firstValue(a, ['name','player_name','nickname','display_name'], '') || '');
+      const bn = String(_firstValue(b, ['name','player_name','nickname','display_name'], '') || '');
+      return an.localeCompare(bn, undefined, { sensitivity: 'base', numeric: true });
+    });
 
-    memberCountEl.textContent = memberships.length;
-    if (!memberships.length) {
-      membersEl.innerHTML = '<div class="no-requests">No members found.</div>';
+    playerCountEl.textContent = players.length;
+    if (!players.length) {
+      playersEl.innerHTML = '<div class="no-requests">No players found.</div>';
     } else {
-      membersEl.innerHTML = memberships.map(m => {
-        const a = accountMap.get(String(m.user_account_id || '')) || {};
-        const memberName = a.nickname || m.nickname || a.email || 'Member';
-        const email = a.email || m.email || '';
+      playersEl.innerHTML = players.map((p, index) => {
+        const playerName = _firstValue(p, ['name','player_name','nickname','display_name'], 'Player ' + (index + 1));
+        const gender = _firstValue(p, ['gender','sex'], '');
+        const rating = _firstValue(p, ['club_rating','clubRating','rating'], '');
+        const meta = [gender, rating !== '' && rating != null ? 'Rating ' + rating : ''].filter(Boolean).join(' · ');
         return `<div class="club-member-row">
-          <div class="club-member-avatar">👤</div>
+          <div class="club-member-avatar">🏸</div>
           <div class="club-member-main">
-            <div class="club-member-name">${escHtml(String(memberName))}</div>
-            ${email ? `<div class="club-member-email">${escHtml(String(email))}</div>` : ''}
+            <div class="club-member-name">${escHtml(String(playerName))}</div>
+            ${meta ? `<div class="club-member-email">${escHtml(String(meta))}</div>` : ''}
           </div>
         </div>`;
       }).join('');
@@ -820,7 +821,7 @@ async function loadClubDetail() {
       }).join('');
     }
   } catch (e) {
-    membersEl.innerHTML = '<div class="no-requests">Could not load members.</div>';
+    playersEl.innerHTML = '<div class="no-requests">Could not load players.</div>';
     sessionsEl.innerHTML = '<div class="no-requests">Could not load sessions.</div>';
   }
 }

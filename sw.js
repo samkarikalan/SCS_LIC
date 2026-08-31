@@ -1,4 +1,4 @@
-const CACHE = 'scs-lic-v5-global-live-sessions';
+const CACHE = 'scs-lic-v20260831-players';
 const ASSETS = [
   '/SCS_LIC/',
   '/SCS_LIC/index.html',
