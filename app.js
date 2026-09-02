@@ -568,15 +568,22 @@ async function loadLiveSessions() {
   updatedEl.textContent = 'Refreshing…';
 
   try {
-    // Global admin feed: intentionally NO club_id, membership, organizer or user filter.
-    // The worker exposes live_sessions as a read-only DB table, so this returns
-    // every live-session row visible to the SCS backend across all clubs.
+    // Global admin feed: use the current SCS `sessions` table as the source of truth.
+    // An active session is any session that has not been completed/ended and
+    // still has recent activity. No club/member/organizer filter is applied.
     const [rowsResult, clubsResult] = await Promise.all([
-      _dbGet('live_sessions', 'select=*&limit=500'),
+      _dbGet('sessions', 'status=neq.completed&select=*&order=updated_at.desc&limit=500'),
       _dbGet('clubs', 'select=*&limit=500')
     ]);
 
-    const rows = Array.isArray(rowsResult) ? rowsResult : (rowsResult && Array.isArray(rowsResult.data) ? rowsResult.data : []);
+    const allRows = Array.isArray(rowsResult) ? rowsResult : (rowsResult && Array.isArray(rowsResult.data) ? rowsResult.data : []);
+    const staleBefore = Date.now() - (3 * 60 * 60 * 1000);
+    const rows = allRows.filter(row => {
+      const status = String(row && row.status || '').toLowerCase();
+      if (status === 'completed' || status === 'ended' || status === 'closed' || status === 'finished') return false;
+      const d = _liveDate(row);
+      return !d || d.getTime() >= staleBefore;
+    });
     const clubs = Array.isArray(clubsResult) ? clubsResult : (clubsResult && Array.isArray(clubsResult.data) ? clubsResult.data : []);
     const clubMap = new Map(clubs.map(c => [String(c.id), c.name || c.club_name || c.title || '']));
 
@@ -585,17 +592,20 @@ async function loadLiveSessions() {
     updatedEl.textContent = 'Updated ' + new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
 
     if (!rows.length) {
-      listEl.innerHTML = '<div class="live-empty"><div class="live-empty-icon">📡</div><strong>No SCS sessions are live now</strong><br><span>This page reads the same live-session feed used by scs-app.</span></div>';
+      listEl.innerHTML = '<div class="live-empty"><div class="live-empty-icon">📡</div><strong>No SCS sessions are active now</strong><br><span>Active sessions appear here until they are ended or become inactive.</span></div>';
       return;
     }
 
     listEl.innerHTML = rows.map(row => {
       const clubId = _firstValue(row, ['club_id','clubId'], '');
       const clubName = _firstValue(row, ['club_name','club','name'], clubMap.get(String(clubId)) || 'SCS Club');
-      const owner = _firstValue(row, ['organizer_name','organizer','owner_name','created_by_name','owner_email','email'], '—');
-      const rounds = _asCount(_firstValue(row, ['round_count','rounds_count','current_round','round_no','rounds'], null));
-      const players = _asCount(_firstValue(row, ['player_count','players_count','active_player_count','players','activeplayers'], null));
-      const courts = _asCount(_firstValue(row, ['court_count','courts_count','num_courts','courts'], null));
+      const owner = _firstValue(row, ['started_by','organizer_name','organizer','owner_name','created_by_name','owner_email','email'], '—');
+      const roundsData = Array.isArray(row.rounds_data) ? row.rounds_data : [];
+      const rounds = roundsData.length || _asCount(_firstValue(row, ['round_count','rounds_count','current_round','round_no','rounds'], null));
+      const players = _asCount(_firstValue(row, ['players','player_count','players_count','active_player_count','activeplayers'], null));
+      const latestRound = roundsData.length ? roundsData[roundsData.length - 1] : null;
+      const latestGames = latestRound && Array.isArray(latestRound.games) ? latestRound.games : null;
+      const courts = latestGames ? latestGames.length : _asCount(_firstValue(row, ['court_count','courts_count','num_courts','courts'], null));
       const date = _liveDate(row);
       const timeText = date ? _timeAgo(date.toISOString()) : 'Live now';
       const sessionId = _firstValue(row, ['session_id','id'], '—');
@@ -750,10 +760,9 @@ async function loadClubDetail() {
   try {
     // Players are the club's complete registered player list from the same
     // `players` table used by SCS Player Manager — not account memberships.
-    const [playerResult, sessionResult, liveResult] = await Promise.all([
+    const [playerResult, sessionResult] = await Promise.all([
       _dbGet('players', 'club_id=eq.' + encodeURIComponent(clubId) + '&select=*'),
-      _dbGet('sessions', 'club_id=eq.' + encodeURIComponent(clubId) + '&select=*&order=created_at.desc&limit=100'),
-      _dbGet('live_sessions', 'club_id=eq.' + encodeURIComponent(clubId) + '&select=*&limit=100')
+      _dbGet('sessions', 'club_id=eq.' + encodeURIComponent(clubId) + '&select=*&order=created_at.desc&limit=100')
     ]);
 
     const players = _rows(playerResult).sort((a, b) => {
@@ -781,13 +790,9 @@ async function loadClubDetail() {
       }).join('');
     }
 
-    const savedSessions = _rows(sessionResult).map(r => ({...r, __live:false}));
-    const liveSessions = _rows(liveResult).map(r => ({...r, __live:true}));
-    const seen = new Set();
-    const sessions = [...liveSessions, ...savedSessions].filter(r => {
-      const key = String(r.session_id || r.id || '') + '|' + String(r.created_at || r.started_at || '');
-      if (seen.has(key)) return false;
-      seen.add(key); return true;
+    const sessions = _rows(sessionResult).map(r => {
+      const status = String(r && r.status || '').toLowerCase();
+      return {...r, __live: status !== 'completed' && status !== 'ended' && status !== 'closed' && status !== 'finished'};
     }).sort((a,b) => {
       const ad = new Date(a.updated_at || a.started_at || a.created_at || 0).getTime() || 0;
       const bd = new Date(b.updated_at || b.started_at || b.created_at || 0).getTime() || 0;
