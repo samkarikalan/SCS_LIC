@@ -19,7 +19,7 @@ async function wPost(path, body) {
 }
 
 // ── Theme ──────────────────────────────────────────────────
-let isDark = false;
+let isDark = document.documentElement.getAttribute('data-theme') === 'dark';
 function toggleTheme() {
   isDark = !isDark;
   document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
@@ -76,9 +76,92 @@ function showScreen(name) {
   }
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById('screen-' + name).classList.add('active');
+  const navSection = name === 'club-detail' ? 'clubs' : (name === 'check' || name === 'request' ? 'home' : name);
+  document.querySelectorAll('.app-bottom-nav button').forEach(button => {
+    const active = button.dataset.screen === navSection;
+    button.classList.toggle('active', active);
+    button.setAttribute('aria-current', active ? 'page' : 'false');
+  });
   window.scrollTo(0, 0);
   applyRememberedAdminAuth(name);
+  if (name === 'home') loadHomeHealth();
 }
+
+async function loadHomeHealth() {
+  const gate = document.getElementById('homeHealthGate');
+  const content = document.getElementById('homeHealthContent');
+  if (!gate || !content) return;
+  if (!isAdminRemembered()) {
+    gate.style.display = '';
+    content.style.display = 'none';
+    return;
+  }
+  gate.style.display = 'none';
+  content.style.display = '';
+  const started = performance.now();
+  ['dbHealthDot','appHealthDot'].forEach(id => {
+    document.getElementById(id).className = 'health-dot checking';
+  });
+  try {
+    const [usersResult, clubsResult, playersResult, sessionsResult] = await Promise.all([
+      _dbGet('user_accounts', 'select=id,nickname,email,auth_provider,created_at&order=created_at.desc&limit=250'),
+      _dbGet('clubs', 'select=id,name&limit=1000'),
+      _dbGet('players', 'select=id&limit=1000'),
+      _dbGet('sessions', 'select=id,club_id,status,created_at,updated_at&order=updated_at.desc&limit=1000')
+    ]);
+    if (!usersResult || !clubsResult || !playersResult || !sessionsResult) throw new Error('Health query failed');
+    const users = _rows(usersResult);
+    const clubs = _rows(clubsResult);
+    const players = _rows(playersResult);
+    const sessions = _rows(sessionsResult);
+    const live = sessions.filter(session => !['completed','ended','closed','finished'].includes(String(session.status || '').toLowerCase()));
+    const latency = Math.max(1, Math.round(performance.now() - started));
+    const displayCount = (rows, limit) => rows.length >= limit ? limit.toLocaleString() + '+' : rows.length.toLocaleString();
+    document.getElementById('healthUsers').textContent = displayCount(users, 250);
+    document.getElementById('healthClubs').textContent = displayCount(clubs, 1000);
+    document.getElementById('healthPlayers').textContent = displayCount(players, 1000);
+    document.getElementById('healthSessions').textContent = displayCount(sessions, 1000);
+    document.getElementById('healthLive').textContent = live.length;
+    document.getElementById('healthUpdated').textContent = 'Updated ' + new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+    document.getElementById('dbHealthValue').textContent = 'Healthy';
+    document.getElementById('dbHealthMeta').textContent = 'All data checks passed';
+    document.getElementById('appHealthValue').textContent = 'Operational';
+    document.getElementById('appHealthMeta').textContent = latency + ' ms API response';
+    document.getElementById('dbHealthDot').className = 'health-dot healthy';
+    document.getElementById('appHealthDot').className = 'health-dot healthy';
+    const clubNames = new Map(clubs.map(club => [club.id, club.name || 'Unnamed club']));
+    const usageCounts = sessions.reduce((counts, session) => {
+      if (session.club_id && clubNames.has(session.club_id)) counts.set(session.club_id, (counts.get(session.club_id) || 0) + 1);
+      return counts;
+    }, new Map());
+    const topClubs = [...usageCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
+    const topUsage = topClubs.length ? topClubs[0][1] : 1;
+    document.getElementById('healthClubUsage').innerHTML = topClubs.length ? topClubs.map(([clubId, count], index) => {
+      const width = Math.max(8, Math.round((count / topUsage) * 100));
+      return `<div class="health-club-row"><div class="health-club-rank">${index + 1}</div><div class="health-club-main"><div class="health-club-label"><strong>${escHtml(clubNames.get(clubId) || 'Unknown club')}</strong><span>${count} session${count === 1 ? '' : 's'}</span></div><div class="health-club-track"><i style="width:${width}%"></i></div></div></div>`;
+    }).join('') : '<div class="no-requests">No club session usage found.</div>';
+    const recentUsers = users.slice(0, 8);
+    document.getElementById('healthUserHistory').innerHTML = recentUsers.length ? recentUsers.map(user => {
+      const when = user.created_at ? new Date(user.created_at) : null;
+      const whenText = when && !Number.isNaN(when.getTime())
+        ? when.toLocaleDateString([], {day:'numeric',month:'short'}) + ' · ' + when.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})
+        : 'Date unavailable';
+      const name = user.nickname || user.email || 'SCS user';
+      return `<div class="health-user-row"><div class="health-user-initial">${escHtml(String(name).charAt(0).toUpperCase() || 'U')}</div><div class="health-user-main"><strong>${escHtml(name)}</strong><span>${escHtml(user.auth_provider || 'account')} · ${escHtml(whenText)}</span></div></div>`;
+    }).join('') : '<div class="no-requests">No user registrations found.</div>';
+  } catch (error) {
+    document.getElementById('dbHealthValue').textContent = 'Unavailable';
+    document.getElementById('dbHealthMeta').textContent = 'Database check failed';
+    document.getElementById('appHealthValue').textContent = 'Degraded';
+    document.getElementById('appHealthMeta').textContent = 'API did not respond';
+    document.getElementById('dbHealthDot').className = 'health-dot unhealthy';
+    document.getElementById('appHealthDot').className = 'health-dot unhealthy';
+    document.getElementById('healthClubUsage').innerHTML = '<div class="no-requests">Could not load club usage.</div>';
+    document.getElementById('healthUserHistory').innerHTML = '<div class="no-requests">Could not load user activity.</div>';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', loadHomeHealth);
 
 // ── Toast ──────────────────────────────────────────────────
 function toast(msg) {
@@ -758,14 +841,31 @@ async function loadClubDetail() {
   sessionCountEl.textContent = '—';
 
   try {
-    // Players are the club's complete registered player list from the same
-    // `players` table used by SCS Player Manager — not account memberships.
+    // Club membership lives in `memberships`; `players` contains the shared
+    // player profile and therefore has no club_id column of its own.
     const [playerResult, sessionResult] = await Promise.all([
-      _dbGet('players', 'club_id=eq.' + encodeURIComponent(clubId) + '&select=*'),
+      _dbGet(
+        'memberships',
+        'club_id=eq.' + encodeURIComponent(clubId) +
+          '&select=id,nickname,club_rating,club_points,is_playing,player_id,user_account_id,players(id,name,gender,global_rating,global_points,wins,losses,user_account_id)'
+      ),
       _dbGet('sessions', 'club_id=eq.' + encodeURIComponent(clubId) + '&select=*&order=created_at.desc&limit=100')
     ]);
 
-    const players = _rows(playerResult).sort((a, b) => {
+    const players = _rows(playerResult).map(membership => {
+      const profile = membership && membership.players ? membership.players : {};
+      return {
+        ...profile,
+        membership_id: membership.id,
+        player_id: membership.player_id || profile.id,
+        name: membership.nickname || profile.name || '',
+        nickname: membership.nickname || profile.name || '',
+        club_rating: membership.club_rating,
+        club_points: membership.club_points,
+        is_playing: membership.is_playing,
+        user_account_id: membership.user_account_id || profile.user_account_id || null
+      };
+    }).sort((a, b) => {
       const an = String(_firstValue(a, ['name','player_name','nickname','display_name'], '') || '');
       const bn = String(_firstValue(b, ['name','player_name','nickname','display_name'], '') || '');
       return an.localeCompare(bn, undefined, { sensitivity: 'base', numeric: true });
@@ -779,13 +879,15 @@ async function loadClubDetail() {
         const playerName = _firstValue(p, ['name','player_name','nickname','display_name'], 'Player ' + (index + 1));
         const gender = _firstValue(p, ['gender','sex'], '');
         const rating = _firstValue(p, ['club_rating','clubRating','rating'], '');
-        const meta = [gender, rating !== '' && rating != null ? 'Rating ' + rating : ''].filter(Boolean).join(' · ');
-        return `<div class="club-member-row">
-          <div class="club-member-avatar">🏸</div>
+        const genderClass = String(gender).toLowerCase() === 'female' ? 'female' : 'male';
+        const genderIcon = genderClass === 'female' ? 'female.png' : 'male.png';
+        return `<div class="club-member-row ${genderClass}">
+          <div class="club-member-number">${index + 1}</div>
+          <div class="club-member-avatar"><img src="${genderIcon}" alt="${escHtml(String(gender || genderClass))}"></div>
           <div class="club-member-main">
             <div class="club-member-name">${escHtml(String(playerName))}</div>
-            ${meta ? `<div class="club-member-email">${escHtml(String(meta))}</div>` : ''}
           </div>
+          ${rating !== '' && rating != null ? `<div class="club-member-rating">${escHtml(Number(rating).toFixed(1))}</div>` : ''}
         </div>`;
       }).join('');
     }

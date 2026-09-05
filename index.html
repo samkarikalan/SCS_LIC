@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta id="themeColorMeta" name="theme-color" content="#f0f4f8">
+  <meta id="themeColorMeta" name="theme-color" content="#078fa3">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="SCS License">
@@ -11,7 +11,7 @@
   <link rel="manifest" href="manifest.json">
   <title>SCS License</title>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=8">
 </head>
 <body>
 <div id="app">
@@ -19,56 +19,45 @@
   <!-- HOME SCREEN -->
   <div id="screen-home" class="screen active">
     <div class="home-header">
-      <div class="home-logo">🔑</div>
+      <div class="home-logo">SCS</div>
       <div>
-        <div class="home-title">SCS License</div>
-        <div class="home-sub">Club Scheduler Pro</div>
+        <div class="home-title">SCS Admin</div>
+        <div class="home-sub">Operations Console</div>
       </div>
-      <button class="theme-btn" id="themeBtn" onclick="toggleTheme()">🌙</button>
+      <button class="theme-btn" id="themeBtn" onclick="toggleTheme()">☀️</button>
     </div>
 
     <div class="home-scroll">
-      <div class="dashboard-intro">
-        <div class="dashboard-eyebrow">SCS CONTROL CENTER</div>
-        <div class="dashboard-title">License &amp; activity</div>
-        <div class="dashboard-copy">Manage access and see what is happening in SCS.</div>
+      <div class="health-titlebar">
+        <div><div class="dashboard-eyebrow">CONTROL CENTER</div><div class="dashboard-title">System overview</div></div>
+        <button class="health-refresh" onclick="loadHomeHealth()" aria-label="Refresh system health">↻</button>
       </div>
-
-      <button class="home-tile tile-live home-live-tile" onclick="showScreen('live')">
-        <span class="live-pulse" aria-hidden="true"></span>
-        <span class="tile-top live-tile-top"><span class="tile-icon">📡</span><span class="live-badge">LIVE</span><span class="tile-arrow">›</span></span>
-        <span class="tile-label">SCS Live Sessions</span>
-        <span class="tile-info">Live from scs-app · All clubs</span>
-        <span class="tile-sub">All clubs · sessions currently running in SCS</span>
-      </button>
-
-      <div class="home-grid dashboard-grid">
-        <button class="home-tile tile-check" onclick="showScreen('check')">
-          <span class="tile-top"><span class="tile-icon">🔎</span><span class="tile-arrow">›</span></span>
-          <span class="tile-label">Check Status</span>
-          <span class="tile-info">Plan lookup</span>
-          <span class="tile-sub">Check a user license</span>
-        </button>
-        <button class="home-tile tile-admin" onclick="showScreen('admin')">
-          <span class="tile-top"><span class="tile-icon">🔐</span><span class="tile-arrow">›</span></span>
-          <span class="tile-label">Admin</span>
-          <span class="tile-info">Licenses</span>
-          <span class="tile-sub">Activate &amp; manage</span>
-        </button>
-        <button class="home-tile tile-clubs" onclick="showScreen('clubs')">
-          <span class="tile-top"><span class="tile-icon">🏢</span><span class="tile-arrow">›</span></span>
-          <span class="tile-label">All Clubs</span>
-          <span class="tile-info">Clubs</span>
-          <span class="tile-sub">Owners &amp; registration</span>
-        </button>
-        <button class="home-tile tile-subs" onclick="showScreen('subscribers')">
-          <span class="tile-top"><span class="tile-icon">👥</span><span class="tile-arrow">›</span></span>
-          <span class="tile-label">Subscribers</span>
-          <span class="tile-info">Users</span>
-          <span class="tile-sub">Trial · Pro · Basic</span>
-        </button>
+      <div id="homeHealthGate" class="health-gate" style="display:none;">
+        <div class="health-gate-title">Admin access required</div>
+        <div class="health-gate-copy">Sign in to view database health and user activity.</div>
+        <button class="btn-primary" onclick="showScreen('admin')">Open Admin Login</button>
       </div>
-
+      <div id="homeHealthContent" style="display:none;">
+        <div class="health-status-grid">
+          <div class="health-status-card"><div class="health-status-top"><span id="dbHealthDot" class="health-dot checking"></span><span>Database</span></div><div id="dbHealthValue" class="health-status-value">Checking</div><div id="dbHealthMeta" class="health-status-meta">Connecting…</div></div>
+          <div class="health-status-card"><div class="health-status-top"><span id="appHealthDot" class="health-dot checking"></span><span>Application</span></div><div id="appHealthValue" class="health-status-value">Checking</div><div id="appHealthMeta" class="health-status-meta">Testing API…</div></div>
+        </div>
+        <div class="health-section">
+          <div class="health-section-head"><span>Database overview</span><span id="healthUpdated">—</span></div>
+          <div class="health-metric-grid">
+            <div class="health-metric"><strong id="healthUsers">—</strong><span>Users</span></div><div class="health-metric"><strong id="healthClubs">—</strong><span>Clubs</span></div><div class="health-metric"><strong id="healthPlayers">—</strong><span>Players</span></div><div class="health-metric"><strong id="healthSessions">—</strong><span>Sessions</span></div>
+          </div>
+          <div class="health-live-row"><span><i class="health-dot"></i> Live sessions</span><strong id="healthLive">—</strong></div>
+        </div>
+        <div class="health-section">
+          <div class="health-section-head"><span>Top club usage</span><span>By sessions</span></div>
+          <div id="healthClubUsage" class="health-club-usage"><div class="no-requests">Loading club usage…</div></div>
+        </div>
+        <div class="health-section">
+          <div class="health-section-head"><span>Recent app users</span><span>Latest registrations</span></div>
+          <div id="healthUserHistory" class="health-user-history"><div class="no-requests">Loading activity…</div></div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -377,6 +366,24 @@
     </div>
   </div>
 
+  <nav class="app-bottom-nav" aria-label="Admin navigation">
+    <button class="active" data-screen="home" onclick="showScreen('home')" aria-label="Home" aria-current="page">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.2 12 4l9 7.2v8.3a1.5 1.5 0 0 1-1.5 1.5H15v-6H9v6H4.5A1.5 1.5 0 0 1 3 19.5Z"/></svg><span>Home</span>
+    </button>
+    <button data-screen="live" onclick="showScreen('live')" aria-label="Live sessions">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V9m5 10V5m5 14v-7m5 7V3"/></svg><span>Live</span>
+    </button>
+    <button data-screen="clubs" onclick="showScreen('clubs')" aria-label="Clubs">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V7l8-4 8 4v14M8 10h2m4 0h2M8 14h2m4 0h2M9 21v-3h6v3"/></svg><span>Clubs</span>
+    </button>
+    <button data-screen="subscribers" onclick="showScreen('subscribers')" aria-label="Subscribers">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 20v-1.5c0-2.5-2.2-4.5-5-4.5s-5 2-5 4.5V20m5-9a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm6-1a3 3 0 0 0 0-6m1 10c2.2.4 3.5 2 3.5 4V20"/></svg><span>Users</span>
+    </button>
+    <button data-screen="admin" onclick="showScreen('admin')" aria-label="Admin">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm0-12v2m0 13v2m8.5-8.5h-2m-13 0h-2m14.5-6-1.4 1.4M7.4 16.6 6 18m12 0-1.4-1.4M7.4 7.4 6 6"/></svg><span>Admin</span>
+    </button>
+  </nav>
+
   <!-- ACTIVATE MODAL -->
   <div id="activateModal" style="display:none;position:fixed;inset:0;z-index:999;background:rgba(0,0,0,.5);align-items:flex-end;justify-content:center;">
     <div style="background:var(--surface);border-radius:24px 24px 0 0;width:100%;max-width:480px;padding:24px 20px calc(24px + env(safe-area-inset-bottom));box-shadow:var(--shadow-lg);">
@@ -407,6 +414,6 @@
   <div id="toast" style="display:none;position:fixed;bottom:calc(24px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:#1a2332;color:#fff;padding:10px 20px;border-radius:50px;font-size:var(--fs-sm);font-weight:600;z-index:9999;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.3);"></div>
 
 </div>
-<script src="app.js"></script>
+<script src="app.js?v=10"></script>
 </body>
 </html>
