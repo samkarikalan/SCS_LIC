@@ -393,8 +393,9 @@
       <div style="font-size:var(--fs-xs);font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;">Duration</div>
       <div class="plan-chips-row" style="margin-bottom:20px;">
         <button class="plan-chip-sm selected" id="mdur-1m"   onclick="selectModalDuration('1m')">1 mo</button>
+        <button class="plan-chip-sm"          id="mdur-3m" onclick="selectModalDuration('3m')">3 mo</button>
         <button class="plan-chip-sm"          id="mdur-6m"   onclick="selectModalDuration('6m')">6 mo</button>
-        <button class="plan-chip-sm"          id="mdur-1y"   onclick="selectModalDuration('1y')">1 yr</button>
+        <button class="plan-chip-sm"          id="mdur-12m"   onclick="selectModalDuration('12m')">1 yr</button>
         <button class="plan-chip-sm"          id="mdur-life" onclick="selectModalDuration('life')">∞ Life</button>
       </div>
       <div class="modal-key-result" id="modalKeyResult">
@@ -414,6 +415,6 @@
   <div id="toast" style="display:none;position:fixed;bottom:calc(24px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:#1a2332;color:#fff;padding:10px 20px;border-radius:50px;font-size:var(--fs-sm);font-weight:600;z-index:9999;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.3);"></div>
 
 </div>
-<script src="app.js?v=10"></script>
+<script src="app.js?v=11"></script>
 </body>
 </html>

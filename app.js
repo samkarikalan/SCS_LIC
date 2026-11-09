@@ -382,17 +382,18 @@ async function adminLoadRequests() {
   listEl.innerHTML = data.requests.map(req => {
     const planClass = req.plan === 'pro' ? 'req-plan-pro' : 'req-plan-basic';
     const planLabel = req.plan === 'pro' ? '⚡ Pro' : '👁 Basic';
+    const requestedPeriod = [3,6,12].includes(Number(req.duration_months)) ? Number(req.duration_months) : null;
     const timeAgo   = _timeAgo(req.created_at);
     return `<div class="req-card" id="reqcard-${req.id}">
       <div class="req-card-header">
         <div>
           <div class="req-email">${req.email}</div>
-          <div class="req-meta">${timeAgo}</div>
+          <div class="req-meta">${timeAgo}${requestedPeriod ? " · " + requestedPeriod + " months requested" : ""}</div>
         </div>
         <span class="req-plan-badge ${planClass}">${planLabel}</span>
       </div>
       <div class="req-actions">
-        <button class="btn-activate" onclick="openActivateModal('${req.id}','${req.email}','${req.plan}',this)">⚡ Activate</button>
+        <button class="btn-activate" onclick="openActivateModal('${req.id}','${req.email}','${req.plan}',this,${requestedPeriod || 0})">⚡ Activate</button>
         <button class="btn-dismiss"  onclick="dismissRequest('${req.id}',this)">✕</button>
       </div>
     </div>`;
@@ -426,17 +427,17 @@ async function dismissRequest(requestId, btn) {
 
 // ── Activate modal ─────────────────────────────────────────
 
-function openActivateModal(requestId, email, plan, btn) {
+function openActivateModal(requestId, email, plan, btn, durationMonths) {
   activateTarget = { requestId, email, plan };
-  modalDuration  = '1m';
+  modalDuration  = [3,6,12].includes(Number(durationMonths)) ? Number(durationMonths) + 'm' : '1m';
   document.getElementById('modalSubText').textContent   = `${plan === 'pro' ? '⚡ Pro' : '👁 Basic'} plan for ${email}`;
   document.getElementById('modalKeyResult').classList.remove('visible');
   document.getElementById('modalError').textContent     = '';
   document.getElementById('modalActivateBtn').textContent = '⚡ Generate & Activate';
   document.getElementById('modalActivateBtn').disabled  = false;
   // Reset duration chips
-  ['1m','6m','1y','life'].forEach(d => {
-    document.getElementById('mdur-' + d).classList.toggle('selected', d === '1m');
+  ['1m','3m','6m','12m','life'].forEach(d => {
+    document.getElementById('mdur-' + d).classList.toggle('selected', d === modalDuration);
   });
   document.getElementById('activateModal').style.display = '';
 }
@@ -454,7 +455,7 @@ window.closeActivateModal = function(e) {
 
 function selectModalDuration(d) {
   modalDuration = d;
-  ['1m','6m','1y','life'].forEach(k => {
+  ['1m','3m','6m','12m','life'].forEach(k => {
     document.getElementById('mdur-' + k).classList.toggle('selected', k === d);
   });
 }
@@ -572,7 +573,9 @@ function _calcExpiry(duration) {
   if (duration === 'life') return null;
   const now = new Date();
   if (duration === '1m')   now.setDate(now.getDate() + 30);
-  if (duration === '6m')   now.setDate(now.getDate() + 180);
+  if (duration === '3m')   now.setMonth(now.getMonth() + 3);
+  if (duration === '6m')   now.setMonth(now.getMonth() + 6);
+  if (duration === '12m')  now.setMonth(now.getMonth() + 12);
   if (duration === '1y')   now.setDate(now.getDate() + 365);
   return now.toISOString();
 }
